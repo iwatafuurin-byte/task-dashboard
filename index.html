@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task Dashboard</title>
+  <style>
+    /* ── Reset & Variables ── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-body:       #0d1117;
+      --bg-sidebar:    #161b22;
+      --bg-topbar:     #161b22;
+      --bg-card:       #1c2128;
+      --bg-column:     #161b22;
+      --bg-input:      #21262d;
+      --border:        #30363d;
+      --text-primary:  #e6edf3;
+      --text-secondary:#8b949e;
+      --accent:        #58a6ff;
+      --accent-glow:   rgba(88,166,255,.15);
+      --green:         #3fb950;
+      --orange:        #d29922;
+      --red:           #f85149;
+      --purple:        #bc8cff;
+      --radius:        10px;
+      --shadow:        0 2px 8px rgba(0,0,0,.35);
+    }
+
+    html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background: var(--bg-body); color: var(--text-primary); }
+
+    /* ── Layout ── */
+    .app { display: grid; grid-template-columns: 68px 1fr; grid-template-rows: 60px 1fr; height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      grid-row: 1 / -1;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; align-items: center;
+      padding: 16px 0; gap: 8px;
+    }
+    .sidebar .logo {
+      width: 36px; height: 36px; background: var(--accent); border-radius: 8px;
+      display: grid; place-items: center; margin-bottom: 20px; font-weight: 700; font-size: 18px; color: #fff;
+    }
+    .sidebar button {
+      width: 42px; height: 42px; border: none; background: transparent; border-radius: var(--radius);
+      color: var(--text-secondary); cursor: pointer; display: grid; place-items: center; transition: .15s;
+    }
+    .sidebar button:hover, .sidebar button.active { background: var(--accent-glow); color: var(--accent); }
+    .sidebar .spacer { flex: 1; }
+
+    /* ── Top Bar ── */
+    .topbar {
+      background: var(--bg-topbar); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 24px; gap: 16px;
+    }
+    .topbar h1 { font-size: 16px; font-weight: 600; white-space: nowrap; }
+    .topbar .search {
+      margin-left: auto; display: flex; align-items: center; gap: 8px;
+      background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
+      padding: 6px 12px; width: 280px; transition: border .15s;
+    }
+    .topbar .search:focus-within { border-color: var(--accent); }
+    .topbar .search svg { flex-shrink: 0; color: var(--text-secondary); }
+    .topbar .search input {
+      border: none; background: transparent; outline: none; color: var(--text-primary);
+      font-size: 13px; width: 100%;
+    }
+    .topbar .search input::placeholder { color: var(--text-secondary); }
+    .topbar .bell { background: none; border: none; color: var(--text-secondary); cursor: pointer; position: relative; }
+    .topbar .bell .dot { position: absolute; top: 0; right: 0; width: 8px; height: 8px; background: var(--red); border-radius: 50%; }
+    .topbar .avatar {
+      width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--purple));
+      display: grid; place-items: center; font-weight: 600; font-size: 13px; cursor: pointer; flex-shrink: 0;
+    }
+
+    /* ── Main Content ── */
+    .main { padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
+
+    /* ── Stats Cards ── */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .stat-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px; display: flex; flex-direction: column; gap: 6px; transition: border .15s;
+    }
+    .stat-card:hover { border-color: var(--accent); }
+    .stat-card .label { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .5px; }
+    .stat-card .value { font-size: 28px; font-weight: 700; }
+    .stat-card .change { font-size: 12px; display: flex; align-items: center; gap: 4px; }
+    .stat-card .change.up   { color: var(--green); }
+    .stat-card .change.down { color: var(--red); }
+
+    .stat-card.total  .value { color: var(--accent); }
+    .stat-card.todo   .value { color: var(--orange); }
+    .stat-card.prog   .value { color: var(--purple); }
+    .stat-card.done   .value { color: var(--green); }
+
+    /* ── Kanban Board ── */
+    .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; flex: 1; min-height: 0; }
+
+    .column {
+      background: var(--bg-column); border: 1px solid var(--border); border-radius: var(--radius);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .column-header {
+      padding: 16px 18px; display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .column-header .dot-indicator { width: 10px; height: 10px; border-radius: 50%; }
+    .column-header .col-title { font-size: 14px; font-weight: 600; }
+    .column-header .count {
+      font-size: 11px; background: var(--bg-input); border-radius: 10px; padding: 2px 8px;
+      color: var(--text-secondary); margin-left: auto;
+    }
+
+    .column.todo .dot-indicator  { background: var(--orange); }
+    .column.inprog .dot-indicator { background: var(--purple); }
+    .column.done .dot-indicator  { background: var(--green); }
+
+    .column-body { padding: 12px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; }
+
+    /* ── Task Card ── */
+    .task-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
+      cursor: grab; transition: transform .15s, box-shadow .15s, border .15s;
+    }
+    .task-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow); }
+    .task-card.dragging { opacity: .5; }
+    .task-card .tag {
+      font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600;
+      display: inline-block; width: fit-content; text-transform: uppercase; letter-spacing: .3px;
+    }
+    .tag.bug        { background: rgba(248,81,73,.15); color: var(--red); }
+    .tag.feature    { background: rgba(88,166,255,.15); color: var(--accent); }
+    .tag.improvement{ background: rgba(188,140,255,.15); color: var(--purple); }
+    .tag.design     { background: rgba(63,185,80,.15); color: var(--green); }
+
+    .task-card .title { font-size: 13px; font-weight: 600; line-height: 1.4; }
+    .task-card .meta { display: flex; align-items: center; justify-content: space-between; }
+    .task-card .priority { font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
+    .task-card .assignee {
+      width: 24px; height: 24px; border-radius: 50%; font-size: 10px; font-weight: 600;
+      display: grid; place-items: center; color: #fff;
+    }
+
+    /* Drag-over styling */
+    .column-body.drag-over { background: var(--accent-glow); border-radius: 6px; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 1024px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .board { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .stats { grid-template-columns: 1fr; }
+      .app { grid-template-columns: 0 1fr; }
+      .sidebar { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="logo">T</div>
+
+    <button class="active" title="Dashboard">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M3 9h14M9 3v14"/></svg>
+    </button>
+    <button title="Tasks">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+    </button>
+    <button title="Calendar">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="14" height="14" rx="2"/><path d="M13 2v4M7 2v4M3 10h14"/></svg>
+    </button>
+    <button title="Team">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2"/><circle cx="10" cy="7" r="4"/></svg>
+    </button>
+    <button title="Analytics">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+    </button>
+
+    <div class="spacer"></div>
+
+    <button title="Settings">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H1a2 2 0 010-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33h.08a1.65 1.65 0 001-1.51V1a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v.08a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    </button>
+  </nav>
+
+  <!-- Top Bar -->
+  <header class="topbar">
+    <h1>Task Dashboard</h1>
+
+    <div class="search">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="7.5" r="5.5"/><path d="M13 13l3 3"/></svg>
+      <input type="text" placeholder="Search tasks..." id="searchInput" />
+    </div>
+
+    <button class="bell" title="Notifications">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+      <span class="dot"></span>
+    </button>
+
+    <div class="avatar" title="User">JD</div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main">
+    <!-- Stats -->
+    <section class="stats">
+      <div class="stat-card total">
+        <span class="label">Total Tasks</span>
+        <span class="value" id="statTotal">12</span>
+        <span class="change up"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3m0 0L3 6m3-3l3 3"/></svg> 8% this week</span>
+      </div>
+      <div class="stat-card todo">
+        <span class="label">To Do</span>
+        <span class="value" id="statTodo">5</span>
+        <span class="change down"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v6m0 0l3-3M6 9L3 6"/></svg> 2 new</span>
+      </div>
+      <div class="stat-card prog">
+        <span class="label">In Progress</span>
+        <span class="value" id="statProg">4</span>
+        <span class="change up"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3m0 0L3 6m3-3l3 3"/></svg> 12% velocity</span>
+      </div>
+      <div class="stat-card done">
+        <span class="label">Done</span>
+        <span class="value" id="statDone">3</span>
+        <span class="change up"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3m0 0L3 6m3-3l3 3"/></svg> 5 this week</span>
+      </div>
+    </section>
+
+    <!-- Kanban Board -->
+    <section class="board" id="board">
+      <!-- To Do Column -->
+      <div class="column todo">
+        <div class="column-header">
+          <span class="dot-indicator"></span>
+          <span class="col-title">To Do</span>
+          <span class="count" data-col="todo">5</span>
+        </div>
+        <div class="column-body" data-status="todo"></div>
+      </div>
+
+      <!-- In Progress Column -->
+      <div class="column inprog">
+        <div class="column-header">
+          <span class="dot-indicator"></span>
+          <span class="col-title">In Progress</span>
+          <span class="count" data-col="inprog">4</span>
+        </div>
+        <div class="column-body" data-status="inprog"></div>
+      </div>
+
+      <!-- Done Column -->
+      <div class="column done">
+        <div class="column-header">
+          <span class="dot-indicator"></span>
+          <span class="col-title">Done</span>
+          <span class="count" data-col="done">3</span>
+        </div>
+        <div class="column-body" data-status="done"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  // ── Task Data ──
+  const tasks = [
+    { id: 1,  title: "Fix login token expiration bug",       tag: "bug",         status: "todo",   priority: "High",   assignee: "JD", color: "#f85149" },
+    { id: 2,  title: "Design new onboarding flow",           tag: "design",      status: "todo",   priority: "Medium", assignee: "AK", color: "#3fb950" },
+    { id: 3,  title: "Add CSV export to reports",            tag: "feature",     status: "todo",   priority: "Low",    assignee: "ML", color: "#58a6ff" },
+    { id: 4,  title: "Upgrade Node.js to v20 LTS",           tag: "improvement", status: "todo",   priority: "Medium", assignee: "SR", color: "#bc8cff" },
+    { id: 5,  title: "Write API rate-limiting tests",        tag: "feature",     status: "todo",   priority: "High",   assignee: "JD", color: "#f85149" },
+
+    { id: 6,  title: "Implement dark mode toggle",           tag: "feature",     status: "inprog", priority: "High",   assignee: "AK", color: "#3fb950" },
+    { id: 7,  title: "Refactor auth middleware",              tag: "improvement", status: "inprog", priority: "Medium", assignee: "ML", color: "#58a6ff" },
+    { id: 8,  title: "Build notification preferences UI",    tag: "feature",     status: "inprog", priority: "Low",    assignee: "SR", color: "#bc8cff" },
+    { id: 9,  title: "Fix mobile nav overflow",              tag: "bug",         status: "inprog", priority: "High",   assignee: "JD", color: "#f85149" },
+
+    { id: 10, title: "Set up CI/CD pipeline",                tag: "improvement", status: "done",   priority: "High",   assignee: "ML", color: "#58a6ff" },
+    { id: 11, title: "Create user avatar upload",            tag: "feature",     status: "done",   priority: "Medium", assignee: "AK", color: "#3fb950" },
+    { id: 12, title: "Fix duplicate email validation",       tag: "bug",         status: "done",   priority: "Low",    assignee: "SR", color: "#bc8cff" },
+  ];
+
+  // ── Render ──
+  function renderTasks(filter = "") {
+    const columns = { todo: [], inprog: [], done: [] };
+    const lower = filter.toLowerCase();
+
+    tasks.forEach(t => {
+      if (lower && !t.title.toLowerCase().includes(lower) && !t.tag.includes(lower)) return;
+      columns[t.status].push(t);
+    });
+
+    Object.entries(columns).forEach(([status, items]) => {
+      const body = document.querySelector(`[data-status="${status}"]`);
+      body.innerHTML = items.map(t => `
+        <div class="task-card" draggable="true" data-id="${t.id}">
+          <span class="tag ${t.tag}">${t.tag}</span>
+          <span class="title">${t.title}</span>
+          <div class="meta">
+            <span class="priority">${priorityIcon(t.priority)} ${t.priority}</span>
+            <span class="assignee" style="background:${t.color}">${t.assignee}</span>
+          </div>
+        </div>
+      `).join("");
+
+      document.querySelector(`.count[data-col="${status === 'inprog' ? 'inprog' : status}"]`).textContent = items.length;
+    });
+
+    updateStats(columns);
+    attachDragListeners();
+  }
+
+  function priorityIcon(p) {
+    const colors = { High: "var(--red)", Medium: "var(--orange)", Low: "var(--text-secondary)" };
+    return `<svg width="12" height="12" viewBox="0 0 12 12" fill="${colors[p] || colors.Low}"><circle cx="6" cy="6" r="4"/></svg>`;
+  }
+
+  function updateStats(columns) {
+    document.getElementById("statTodo").textContent  = columns.todo.length;
+    document.getElementById("statProg").textContent  = columns.inprog.length;
+    document.getElementById("statDone").textContent  = columns.done.length;
+    document.getElementById("statTotal").textContent = columns.todo.length + columns.inprog.length + columns.done.length;
+  }
+
+  // ── Drag & Drop ──
+  let draggedId = null;
+
+  function attachDragListeners() {
+    document.querySelectorAll(".task-card").forEach(card => {
+      card.addEventListener("dragstart", e => {
+        draggedId = +card.dataset.id;
+        card.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+      });
+      card.addEventListener("dragend", () => {
+        card.classList.remove("dragging");
+        draggedId = null;
+      });
+    });
+
+    document.querySelectorAll(".column-body").forEach(col => {
+      col.addEventListener("dragover", e => { e.preventDefault(); col.classList.add("drag-over"); });
+      col.addEventListener("dragleave", () => col.classList.remove("drag-over"));
+      col.addEventListener("drop", e => {
+        e.preventDefault();
+        col.classList.remove("drag-over");
+        if (draggedId == null) return;
+        const task = tasks.find(t => t.id === draggedId);
+        if (task) { task.status = col.dataset.status; renderTasks(document.getElementById("searchInput").value); }
+      });
+    });
+  }
+
+  // ── Search ──
+  document.getElementById("searchInput").addEventListener("input", e => renderTasks(e.target.value));
+
+  // ── Sidebar active state ──
+  document.querySelectorAll(".sidebar button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".sidebar button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  });
+
+  // ── Init ──
+  renderTasks();
+</script>
+
+</body>
+</html>
