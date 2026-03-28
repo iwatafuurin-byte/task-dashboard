@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pricing Plans</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-body:       #0d1117;
+      --bg-card:       #1c2128;
+      --bg-input:      #21262d;
+      --border:        #30363d;
+      --text-primary:  #e6edf3;
+      --text-secondary:#8b949e;
+      --accent:        #58a6ff;
+      --accent-glow:   rgba(88,166,255,.15);
+      --green:         #3fb950;
+      --purple:        #bc8cff;
+      --radius:        10px;
+      --shadow:        0 2px 8px rgba(0,0,0,.35);
+    }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg-body);
+      color: var(--text-primary);
+    }
+
+    /* ── Page Layout ── */
+    .page {
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 48px 24px;
+    }
+
+    .page-header {
+      text-align: center; margin-bottom: 40px;
+    }
+    .page-header h1 {
+      font-size: 32px; font-weight: 800; margin-bottom: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .page-header p {
+      font-size: 15px; color: var(--text-secondary); max-width: 440px; line-height: 1.6;
+    }
+
+    /* ── Toggle ── */
+    .billing-toggle {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 36px;
+      font-size: 14px; color: var(--text-secondary);
+    }
+    .billing-toggle .label-active { color: var(--text-primary); font-weight: 600; }
+    .toggle-track {
+      width: 44px; height: 24px; background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: 12px; cursor: pointer; position: relative; transition: .2s;
+    }
+    .toggle-track.on { background: var(--accent); border-color: var(--accent); }
+    .toggle-thumb {
+      position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
+      background: #fff; border-radius: 50%; transition: .2s;
+    }
+    .toggle-track.on .toggle-thumb { left: 22px; }
+    .save-badge {
+      font-size: 11px; background: rgba(63,185,80,.15); color: var(--green);
+      padding: 3px 8px; border-radius: 10px; font-weight: 600;
+    }
+
+    /* ── Pricing Grid ── */
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 24px; max-width: 960px; width: 100%;
+    }
+
+    /* ── Pricing Card ── */
+    .pricing-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 32px 28px; display: flex; flex-direction: column; gap: 22px;
+      transition: transform .2s, border-color .2s, box-shadow .2s;
+      cursor: pointer; position: relative; overflow: hidden;
+    }
+    .pricing-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+
+    /* Selected state */
+    .pricing-card.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent), 0 4px 24px rgba(88,166,255,.18);
+    }
+    .pricing-card.selected::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--purple));
+    }
+
+    /* Badge */
+    .plan-badge {
+      font-size: 10px; text-transform: uppercase; letter-spacing: .8px; font-weight: 700;
+      padding: 4px 12px; border-radius: 10px; width: fit-content;
+    }
+    .pricing-card.free .plan-badge       { background: rgba(63,185,80,.12); color: var(--green); }
+    .pricing-card.pro .plan-badge        { background: rgba(88,166,255,.12); color: var(--accent); }
+    .pricing-card.enterprise .plan-badge { background: rgba(188,140,255,.12); color: var(--purple); }
+
+    .plan-name { font-size: 20px; font-weight: 700; }
+
+    .plan-price { display: flex; align-items: baseline; gap: 4px; }
+    .plan-price .amount { font-size: 40px; font-weight: 800; }
+    .plan-price .period { font-size: 14px; color: var(--text-secondary); }
+
+    .plan-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+
+    /* Divider */
+    .divider { border: none; border-top: 1px solid var(--border); }
+
+    /* Feature list */
+    .feature-list { list-style: none; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+    .feature-list li {
+      font-size: 13px; display: flex; align-items: center; gap: 10px; color: var(--text-secondary);
+    }
+    .feature-list li .check { color: var(--green); flex-shrink: 0; }
+
+    /* CTA Button */
+    .cta-btn {
+      width: 100%; padding: 12px 0; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg-input); color: var(--text-primary); font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: .15s; text-align: center;
+    }
+    .cta-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .pricing-card.selected .cta-btn {
+      background: var(--accent); border-color: var(--accent); color: #fff;
+    }
+    .pricing-card.selected .cta-btn:hover { opacity: .9; }
+
+    /* Selected indicator */
+    .selected-indicator {
+      position: absolute; top: 16px; right: 16px; width: 24px; height: 24px;
+      background: var(--accent); border-radius: 50%; display: none;
+      place-items: center; color: #fff;
+    }
+    .pricing-card.selected .selected-indicator { display: grid; }
+
+    /* ── Responsive ── */
+    @media (max-width: 820px) {
+      .pricing-grid { grid-template-columns: 1fr; max-width: 400px; }
+      .page-header h1 { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+  <div class="page-header">
+    <h1>Choose Your Plan</h1>
+    <p>Select the plan that fits your team's needs. Upgrade or downgrade at any time.</p>
+  </div>
+
+  <div class="billing-toggle">
+    <span id="monthlyLabel" class="label-active">Monthly</span>
+    <div class="toggle-track" id="billingToggle" onclick="toggleBilling()">
+      <div class="toggle-thumb"></div>
+    </div>
+    <span id="yearlyLabel">Yearly</span>
+    <span class="save-badge">Save 20%</span>
+  </div>
+
+  <div class="pricing-grid" id="pricingGrid">
+
+    <!-- Free -->
+    <div class="pricing-card free" data-plan="free" onclick="selectPlan('free')">
+      <span class="selected-indicator">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6l3 3 5-6"/></svg>
+      </span>
+      <span class="plan-badge">Free</span>
+      <span class="plan-name">Starter</span>
+      <div class="plan-price">
+        <span class="amount">$0</span>
+        <span class="period">/ month</span>
+      </div>
+      <p class="plan-desc">Perfect for individuals and small side projects getting started.</p>
+      <hr class="divider" />
+      <ul class="feature-list">
+        <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Up to 3 projects</li>
+        <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Basic kanban board</li>
+        <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> 1 team member</li>
+        <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Community support</li>
+      </ul>
+      <button class="cta-btn">Get Started</button>
+    </div>
+
+    <!-- Pro -->
+    <div class="pricing-card pro selected" data-plan="pro" onclick="selectPlan('pro')">
+      <span class="selected-indicator">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6l3 3 5-6"/></svg>
+      </span>
+      <span class="plan-badge">Pro</span>
+      <span class="plan-name">Professional</span>
+      <div class="plan-price">
+        <span class="amount" data-monthly="$12" data-yearly="$10">$12</span>
+        <span class="period">/ month</span>
+      </div>
+      <p class="plan-desc">For growing teams that need more power and collaboration tools.</p>
+      <hr class="divider" />
+      <ul class="feature-list">
+        <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Unlimited projects</li>
+        <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Advanced analytics</li>
+        <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Up to 10 team members</li>
+        <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Priority email support</li>
+        <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Custom fields &amp; filters</li>
+      </ul>
+      <button class="cta-btn">Upgrade to Pro</button>
+    </div>
+
+    <!-- Enterprise -->
+    <div class="pricing-card enterprise" data-plan="enterprise" onclick="selectPlan('enterprise')">
+      <span class="selected-indicator">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6l3 3 5-6"/></svg>
+      </span>
+      <span class="plan-badge">Enterprise</span>
+      <span class="plan-name">Enterprise</span>
+      <div class="plan-price">
+        <span class="amount" data-monthly="$49" data-yearly="$39">$49</span>
+        <span class="period">/ month</span>
+      </div>
+      <p class="plan-desc">For large organizations requiring full control, security, and scale.</p>
+      <hr class="divider" />
+      <ul class="feature-list">
+        <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Everything in Pro</li>
+        <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Unlimited team members</li>
+        <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> SSO &amp; SAML</li>
+        <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Audit logs &amp; compliance</li>
+        <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Dedicated account manager</li>
+        <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> 99.9% SLA guarantee</li>
+      </ul>
+      <button class="cta-btn">Contact Sales</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── Plan Selection ──
+  function selectPlan(plan) {
+    document.querySelectorAll(".pricing-card").forEach(c => c.classList.remove("selected"));
+    document.querySelector(`.pricing-card[data-plan="${plan}"]`).classList.add("selected");
+  }
+
+  // ── Billing Toggle ──
+  let isYearly = false;
+
+  function toggleBilling() {
+    isYearly = !isYearly;
+    const track = document.getElementById("billingToggle");
+    const monthlyLabel = document.getElementById("monthlyLabel");
+    const yearlyLabel = document.getElementById("yearlyLabel");
+
+    track.classList.toggle("on", isYearly);
+    monthlyLabel.classList.toggle("label-active", !isYearly);
+    yearlyLabel.classList.toggle("label-active", isYearly);
+
+    document.querySelectorAll(".plan-price .amount[data-monthly]").forEach(el => {
+      el.textContent = isYearly ? el.dataset.yearly : el.dataset.monthly;
+    });
+  }
+</script>
+
+</body>
+</html>
