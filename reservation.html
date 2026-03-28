@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>予約管理 - ReserveApp</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-body:       #0d1117;
+      --bg-sidebar:    #161b22;
+      --bg-card:       #1c2128;
+      --bg-input:      #21262d;
+      --border:        #30363d;
+      --text-primary:  #e6edf3;
+      --text-secondary:#8b949e;
+      --accent:        #58a6ff;
+      --accent-glow:   rgba(88,166,255,.15);
+      --green:         #3fb950;
+      --green-dim:     rgba(63,185,80,.12);
+      --orange:        #d29922;
+      --orange-dim:    rgba(210,153,34,.12);
+      --red:           #f85149;
+      --red-dim:       rgba(248,81,73,.12);
+      --purple:        #bc8cff;
+      --purple-dim:    rgba(188,140,255,.12);
+      --yellow:        #e3b341;
+      --radius:        10px;
+      --shadow:        0 2px 8px rgba(0,0,0,.35);
+    }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg-body); color: var(--text-primary);
+    }
+
+    /* ── Layout ── */
+    .app { display: grid; grid-template-columns: 72px 1fr; grid-template-rows: 60px 1fr; height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      grid-row: 1 / -1; background: var(--bg-sidebar); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 6px;
+    }
+    .sidebar .logo {
+      width: 38px; height: 38px; background: linear-gradient(135deg, var(--accent), var(--purple));
+      border-radius: 10px; display: grid; place-items: center; margin-bottom: 20px;
+      font-weight: 800; font-size: 16px; color: #fff;
+    }
+    .sidebar button {
+      width: 44px; height: 44px; border: none; background: transparent; border-radius: var(--radius);
+      color: var(--text-secondary); cursor: pointer; display: grid; place-items: center; transition: .15s;
+      position: relative;
+    }
+    .sidebar button:hover, .sidebar button.active { background: var(--accent-glow); color: var(--accent); }
+    .sidebar button .badge {
+      position: absolute; top: 4px; right: 4px; width: 16px; height: 16px; font-size: 9px;
+      background: var(--red); color: #fff; border-radius: 50%; display: grid; place-items: center; font-weight: 700;
+    }
+    .sidebar .spacer { flex: 1; }
+
+    /* ── Top Bar ── */
+    .topbar {
+      background: var(--bg-sidebar); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 28px; gap: 16px;
+    }
+    .topbar .page-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .topbar .date-badge {
+      font-size: 11px; background: var(--accent-glow); color: var(--accent); padding: 3px 10px;
+      border-radius: 10px; font-weight: 600;
+    }
+    .topbar .search {
+      margin-left: auto; display: flex; align-items: center; gap: 8px;
+      background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
+      padding: 6px 12px; width: 240px; transition: border .15s;
+    }
+    .topbar .search:focus-within { border-color: var(--accent); }
+    .topbar .search svg { flex-shrink: 0; color: var(--text-secondary); }
+    .topbar .search input {
+      border: none; background: transparent; outline: none; color: var(--text-primary);
+      font-size: 13px; width: 100%;
+    }
+    .topbar .search input::placeholder { color: var(--text-secondary); }
+    .topbar .avatar {
+      width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--orange), var(--red));
+      display: grid; place-items: center; font-weight: 600; font-size: 12px; cursor: pointer; flex-shrink: 0;
+    }
+
+    /* ── Main Content ── */
+    .main { padding: 24px 28px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
+
+    /* ── Action Row ── */
+    .action-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .btn-new {
+      display: flex; align-items: center; gap: 8px; padding: 10px 20px; border: none;
+      background: var(--accent); color: #fff; font-size: 14px; font-weight: 600;
+      border-radius: 8px; cursor: pointer; transition: .15s; white-space: nowrap;
+    }
+    .btn-new:hover { opacity: .9; box-shadow: 0 0 16px rgba(88,166,255,.3); }
+
+    .time-now {
+      margin-left: auto; font-size: 13px; color: var(--text-secondary);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .time-now .live-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+
+    /* ── Stats Cards ── */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .stat-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px; display: flex; flex-direction: column; gap: 8px; transition: border .15s;
+    }
+    .stat-card:hover { border-color: var(--accent); }
+    .stat-card .stat-header { display: flex; align-items: center; justify-content: space-between; }
+    .stat-card .stat-label { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .4px; }
+    .stat-card .stat-icon {
+      width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center;
+    }
+    .stat-card .stat-value { font-size: 28px; font-weight: 800; }
+    .stat-card .stat-sub { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
+
+    .stat-card.total .stat-icon   { background: var(--accent-glow); color: var(--accent); }
+    .stat-card.total .stat-value  { color: var(--accent); }
+    .stat-card.seated .stat-icon  { background: var(--green-dim); color: var(--green); }
+    .stat-card.seated .stat-value { color: var(--green); }
+    .stat-card.vacant .stat-icon  { background: var(--orange-dim); color: var(--orange); }
+    .stat-card.vacant .stat-value { color: var(--orange); }
+    .stat-card.cancel .stat-icon  { background: var(--red-dim); color: var(--red); }
+    .stat-card.cancel .stat-value { color: var(--red); }
+
+    /* ── Seat Map ── */
+    .content-grid { display: grid; grid-template-columns: 1fr 320px; gap: 20px; flex: 1; min-height: 0; }
+
+    .section-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .section-title-bar {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    }
+    .section-title-bar h2 { font-size: 14px; font-weight: 600; }
+    .section-title-bar .pill {
+      font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600;
+      margin-left: auto;
+    }
+
+    /* Seat Grid */
+    .seat-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 10px; padding: 16px 20px; overflow-y: auto; flex: 1;
+    }
+    .seat {
+      background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
+      padding: 14px 10px; text-align: center; display: flex; flex-direction: column;
+      align-items: center; gap: 6px; transition: .15s; cursor: default;
+    }
+    .seat .seat-icon { font-size: 20px; }
+    .seat .seat-label { font-size: 11px; font-weight: 600; }
+    .seat .seat-cap { font-size: 10px; color: var(--text-secondary); }
+
+    .seat.vacant  { border-color: var(--green); }
+    .seat.vacant .seat-label { color: var(--green); }
+    .seat.occupied { border-color: var(--border); background: rgba(88,166,255,.06); }
+    .seat.occupied .seat-label { color: var(--accent); }
+    .seat.reserved { border-color: var(--orange); background: var(--orange-dim); }
+    .seat.reserved .seat-label { color: var(--orange); }
+
+    .seat-legend { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 16px; flex-shrink: 0; }
+    .seat-legend span { font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 5px; }
+    .seat-legend .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .seat-legend .dot.v { background: var(--green); }
+    .seat-legend .dot.o { background: var(--accent); }
+    .seat-legend .dot.r { background: var(--orange); }
+
+    /* ── Reservation List ── */
+    .res-list { display: flex; flex-direction: column; overflow-y: auto; flex: 1; }
+    .res-item {
+      padding: 14px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px; transition: background .15s; cursor: pointer;
+    }
+    .res-item:hover { background: var(--accent-glow); }
+    .res-item .res-time {
+      font-size: 13px; font-weight: 700; min-width: 48px; color: var(--accent);
+    }
+    .res-item .res-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .res-item .res-name { font-size: 13px; font-weight: 600; }
+    .res-item .res-detail { font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; }
+    .res-item .res-status {
+      font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .3px; flex-shrink: 0;
+    }
+    .res-status.confirmed { background: var(--green-dim); color: var(--green); }
+    .res-status.pending   { background: var(--orange-dim); color: var(--orange); }
+    .res-status.cancelled { background: var(--red-dim); color: var(--red); }
+    .res-status.seated    { background: var(--accent-glow); color: var(--accent); }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none;
+      place-items: center; z-index: 100; backdrop-filter: blur(4px);
+    }
+    .modal-overlay.show { display: grid; }
+    .modal {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+      width: 420px; max-width: 90vw; padding: 28px; display: flex; flex-direction: column; gap: 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5);
+    }
+    .modal h2 { font-size: 18px; font-weight: 700; }
+    .modal .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .modal label { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .4px; }
+    .modal input, .modal select {
+      background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 12px; color: var(--text-primary); font-size: 13px; outline: none;
+      transition: border .15s;
+    }
+    .modal input:focus, .modal select:focus { border-color: var(--accent); }
+    .modal select option { background: var(--bg-card); }
+    .modal .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal .btn-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+    .modal .btn-cancel {
+      padding: 10px 20px; border: 1px solid var(--border); background: transparent;
+      color: var(--text-primary); border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600;
+      transition: .15s;
+    }
+    .modal .btn-cancel:hover { border-color: var(--text-secondary); }
+    .modal .btn-save {
+      padding: 10px 24px; border: none; background: var(--accent); color: #fff;
+      border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; transition: .15s;
+    }
+    .modal .btn-save:hover { opacity: .9; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 1024px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .content-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .stats { grid-template-columns: 1fr; }
+      .app { grid-template-columns: 0 1fr; }
+      .sidebar { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="logo">R</div>
+    <button class="active" title="ホーム">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l7-7 7 7"/><path d="M5 8v8a1 1 0 001 1h3v-5h2v5h3a1 1 0 001-1V8"/></svg>
+    </button>
+    <button title="予約一覧">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="14" height="14" rx="2"/><path d="M13 2v4M7 2v4M3 10h14"/></svg>
+      <span class="badge">3</span>
+    </button>
+    <button title="テーブル管理">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M3 9h14M9 3v14"/></svg>
+    </button>
+    <button title="顧客">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2"/><circle cx="10" cy="7" r="4"/></svg>
+    </button>
+    <button title="メニュー">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h14v2H3zM3 9h14v2H3zM3 15h8v2H3z"/></svg>
+    </button>
+    <div class="spacer"></div>
+    <button title="設定">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H1a2 2 0 010-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33h.08a1.65 1.65 0 001-1.51V1a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v.08a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    </button>
+  </nav>
+
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div class="page-title">
+      予約管理
+      <span class="date-badge" id="todayDate"></span>
+    </div>
+    <div class="search">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="7.5" r="5.5"/><path d="M13 13l3 3"/></svg>
+      <input type="text" placeholder="名前・電話番号で検索..." id="searchInput" />
+    </div>
+    <div class="avatar" title="Staff">田中</div>
+  </header>
+
+  <!-- Main -->
+  <main class="main">
+    <!-- Action Row -->
+    <div class="action-row">
+      <button class="btn-new" onclick="openModal()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
+        新規予約
+      </button>
+      <span class="time-now">
+        <span class="live-dot"></span>
+        <span id="liveTime"></span>
+      </span>
+    </div>
+
+    <!-- Stats -->
+    <section class="stats">
+      <div class="stat-card total">
+        <div class="stat-header">
+          <span class="stat-label">本日の予約</span>
+          <span class="stat-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="12" rx="2"/><path d="M11 1v4M5 1v4M2 8h12"/></svg></span>
+        </div>
+        <span class="stat-value" id="statTotal">8</span>
+        <span class="stat-sub">前週比 +2 件</span>
+      </div>
+      <div class="stat-card seated">
+        <div class="stat-header">
+          <span class="stat-label">着席中</span>
+          <span class="stat-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2"/><circle cx="10" cy="7" r="4"/></svg></span>
+        </div>
+        <span class="stat-value" id="statSeated">2</span>
+        <span class="stat-sub">4 / 10 テーブル使用中</span>
+      </div>
+      <div class="stat-card vacant">
+        <div class="stat-header">
+          <span class="stat-label">空席テーブル</span>
+          <span class="stat-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="2"/></svg></span>
+        </div>
+        <span class="stat-value">6</span>
+        <span class="stat-sub">残り 22 席</span>
+      </div>
+      <div class="stat-card cancel">
+        <div class="stat-header">
+          <span class="stat-label">キャンセル</span>
+          <span class="stat-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M5 5l6 6M11 5l-6 6"/></svg></span>
+        </div>
+        <span class="stat-value">1</span>
+        <span class="stat-sub">キャンセル率 12%</span>
+      </div>
+    </section>
+
+    <!-- Content Grid: Seat Map + Reservation List -->
+    <div class="content-grid">
+      <!-- Seat Map -->
+      <div class="section-card">
+        <div class="section-title-bar">
+          <h2>フロア空席状況</h2>
+          <span class="pill" style="background:var(--green-dim);color:var(--green);">6 空席</span>
+        </div>
+        <div class="seat-grid" id="seatGrid"></div>
+        <div class="seat-legend">
+          <span><span class="dot v"></span> 空席</span>
+          <span><span class="dot o"></span> 着席中</span>
+          <span><span class="dot r"></span> 予約済</span>
+        </div>
+      </div>
+
+      <!-- Today's Reservation List -->
+      <div class="section-card">
+        <div class="section-title-bar">
+          <h2>本日の予約一覧</h2>
+          <span class="pill" style="background:var(--accent-glow);color:var(--accent);" id="resCount">8 件</span>
+        </div>
+        <div class="res-list" id="resList"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- New Reservation Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>新規予約</h2>
+    <div class="form-group">
+      <label>お名前</label>
+      <input type="text" id="fName" placeholder="山田 太郎" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>日付</label>
+        <input type="date" id="fDate" />
+      </div>
+      <div class="form-group">
+        <label>時間</label>
+        <input type="time" id="fTime" value="18:00" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>人数</label>
+        <select id="fGuests">
+          <option>1名</option><option selected>2名</option><option>3名</option><option>4名</option><option>5名</option><option>6名</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>テーブル</label>
+        <select id="fTable">
+          <option>自動割当</option>
+          <option>A1 (2名)</option><option>A2 (2名)</option>
+          <option>B1 (4名)</option><option>B2 (4名)</option>
+          <option>C1 (6名)</option><option>C2 (6名)</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>備考</label>
+      <input type="text" id="fNote" placeholder="アレルギー、誕生日など..." />
+    </div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn-save" onclick="saveReservation()">予約を登録</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Date / Time ──
+  function updateTime() {
+    const now = new Date();
+    document.getElementById("liveTime").textContent =
+      now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  }
+  updateTime();
+  setInterval(updateTime, 1000);
+
+  const today = new Date();
+  document.getElementById("todayDate").textContent =
+    today.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric", weekday: "short" });
+  document.getElementById("fDate").value = today.toISOString().slice(0, 10);
+
+  // ── Seat Data ──
+  const seats = [
+    { id: "A1", cap: 2, status: "occupied" },
+    { id: "A2", cap: 2, status: "vacant" },
+    { id: "A3", cap: 2, status: "reserved" },
+    { id: "A4", cap: 2, status: "vacant" },
+    { id: "B1", cap: 4, status: "occupied" },
+    { id: "B2", cap: 4, status: "reserved" },
+    { id: "B3", cap: 4, status: "vacant" },
+    { id: "B4", cap: 4, status: "vacant" },
+    { id: "C1", cap: 6, status: "occupied" },
+    { id: "C2", cap: 6, status: "vacant" },
+  ];
+
+  function seatIcon(cap) {
+    if (cap <= 2) return "&#x1f6cb;";
+    if (cap <= 4) return "&#x1f37d;";
+    return "&#x1f4a0;";
+  }
+
+  function renderSeats() {
+    document.getElementById("seatGrid").innerHTML = seats.map(s => `
+      <div class="seat ${s.status}">
+        <span class="seat-icon">${seatIcon(s.cap)}</span>
+        <span class="seat-label">${s.id}</span>
+        <span class="seat-cap">${s.cap}名席</span>
+      </div>
+    `).join("");
+  }
+  renderSeats();
+
+  // ── Reservation Data ──
+  const reservations = [
+    { time: "11:30", name: "佐藤 様", guests: 2, table: "A1", status: "seated",    note: "" },
+    { time: "12:00", name: "鈴木 様", guests: 4, table: "B1", status: "seated",    note: "窓側希望" },
+    { time: "17:00", name: "高橋 様", guests: 2, table: "A3", status: "confirmed", note: "" },
+    { time: "17:30", name: "田中 様", guests: 4, table: "B2", status: "confirmed", note: "誕生日" },
+    { time: "18:00", name: "渡辺 様", guests: 6, table: "C1", status: "confirmed", note: "アレルギー有" },
+    { time: "18:30", name: "伊藤 様", guests: 2, table: "A2", status: "pending",   note: "" },
+    { time: "19:00", name: "山本 様", guests: 3, table: "B3", status: "confirmed", note: "コース料理" },
+    { time: "19:30", name: "中村 様", guests: 2, table: "A4", status: "cancelled", note: "" },
+  ];
+
+  const statusLabels = { confirmed: "確定", pending: "未確定", seated: "着席中", cancelled: "取消" };
+
+  function renderReservations(filter = "") {
+    const lower = filter.toLowerCase();
+    const filtered = reservations.filter(r =>
+      !lower || r.name.toLowerCase().includes(lower) || r.table.toLowerCase().includes(lower)
+    );
+    document.getElementById("resList").innerHTML = filtered.map(r => `
+      <div class="res-item">
+        <span class="res-time">${r.time}</span>
+        <div class="res-info">
+          <span class="res-name">${r.name}</span>
+          <span class="res-detail">
+            <span>${r.guests}名</span>
+            <span>テーブル ${r.table}</span>
+            ${r.note ? `<span>• ${r.note}</span>` : ""}
+          </span>
+        </div>
+        <span class="res-status ${r.status}">${statusLabels[r.status]}</span>
+      </div>
+    `).join("");
+    document.getElementById("resCount").textContent = filtered.length + " 件";
+  }
+  renderReservations();
+
+  // ── Search ──
+  document.getElementById("searchInput").addEventListener("input", e => renderReservations(e.target.value));
+
+  // ── Modal ──
+  function openModal() { document.getElementById("modal").classList.add("show"); }
+  function closeModal() { document.getElementById("modal").classList.remove("show"); }
+  document.getElementById("modal").addEventListener("click", e => { if (e.target === e.currentTarget) closeModal(); });
+
+  function saveReservation() {
+    const name = document.getElementById("fName").value.trim();
+    const time = document.getElementById("fTime").value;
+    const guests = parseInt(document.getElementById("fGuests").value);
+    const table = document.getElementById("fTable").value;
+    if (!name) { document.getElementById("fName").focus(); return; }
+
+    reservations.push({
+      time, name: name + " 様", guests, table: table === "自動割当" ? "未定" : table.split(" ")[0],
+      status: "confirmed", note: document.getElementById("fNote").value.trim()
+    });
+    reservations.sort((a, b) => a.time.localeCompare(b.time));
+    renderReservations(document.getElementById("searchInput").value);
+
+    document.getElementById("statTotal").textContent = reservations.filter(r => r.status !== "cancelled").length;
+    closeModal();
+    document.getElementById("fName").value = "";
+    document.getElementById("fNote").value = "";
+  }
+
+  // ── Sidebar active ──
+  document.querySelectorAll(".sidebar button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".sidebar button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  });
+</script>
+
+</body>
+</html>
