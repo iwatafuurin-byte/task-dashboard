@@ -155,10 +155,76 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
+    /* ── Pricing Cards ── */
+    .pricing-section { display: flex; flex-direction: column; gap: 16px; }
+    .pricing-section .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .pricing-section .section-title { font-size: 16px; font-weight: 600; }
+    .pricing-section .section-subtitle { font-size: 13px; color: var(--text-secondary); }
+
+    .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+    .pricing-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 28px 24px; display: flex; flex-direction: column; gap: 20px;
+      transition: transform .2s, border-color .2s, box-shadow .2s; cursor: pointer; position: relative; overflow: hidden;
+    }
+    .pricing-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+    .pricing-card.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent), 0 4px 24px rgba(88,166,255,.18);
+    }
+    .pricing-card.selected::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--purple));
+    }
+
+    .pricing-card .plan-badge {
+      font-size: 10px; text-transform: uppercase; letter-spacing: .8px; font-weight: 700;
+      padding: 4px 10px; border-radius: 10px; width: fit-content;
+    }
+    .pricing-card.free .plan-badge        { background: rgba(63,185,80,.12); color: var(--green); }
+    .pricing-card.pro .plan-badge         { background: rgba(88,166,255,.12); color: var(--accent); }
+    .pricing-card.enterprise .plan-badge  { background: rgba(188,140,255,.12); color: var(--purple); }
+
+    .pricing-card .plan-name { font-size: 18px; font-weight: 700; }
+
+    .pricing-card .plan-price { display: flex; align-items: baseline; gap: 4px; }
+    .pricing-card .plan-price .amount { font-size: 36px; font-weight: 800; }
+    .pricing-card .plan-price .period { font-size: 13px; color: var(--text-secondary); }
+
+    .pricing-card .plan-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+
+    .pricing-card .feature-list { list-style: none; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+    .pricing-card .feature-list li {
+      font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-secondary);
+    }
+    .pricing-card .feature-list li .check { color: var(--green); flex-shrink: 0; }
+
+    .pricing-card .cta-btn {
+      width: 100%; padding: 10px 0; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg-input); color: var(--text-primary); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: .15s; text-align: center;
+    }
+    .pricing-card .cta-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .pricing-card.selected .cta-btn {
+      background: var(--accent); border-color: var(--accent); color: #fff;
+    }
+    .pricing-card.selected .cta-btn:hover { opacity: .9; }
+
+    .selected-indicator {
+      position: absolute; top: 14px; right: 14px; width: 22px; height: 22px;
+      background: var(--accent); border-radius: 50%; display: none;
+      place-items: center; color: #fff;
+    }
+    .pricing-card.selected .selected-indicator { display: grid; }
+
     /* ── Responsive ── */
     @media (max-width: 1024px) {
       .stats { grid-template-columns: repeat(2, 1fr); }
       .board { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 600px) {
       .stats { grid-template-columns: 1fr; }
@@ -237,6 +303,76 @@
         <span class="label">Done</span>
         <span class="value" id="statDone">3</span>
         <span class="change up"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3m0 0L3 6m3-3l3 3"/></svg> 5 this week</span>
+      </div>
+    </section>
+
+    <!-- Pricing Cards -->
+    <section class="pricing-section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Choose Your Plan</div>
+          <div class="section-subtitle">Select the plan that fits your team's needs</div>
+        </div>
+      </div>
+      <div class="pricing-grid" id="pricingGrid">
+
+        <div class="pricing-card free" data-plan="free" onclick="selectPlan('free')">
+          <span class="selected-indicator"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6l3 3 5-6"/></svg></span>
+          <span class="plan-badge">Free</span>
+          <span class="plan-name">Starter</span>
+          <div class="plan-price">
+            <span class="amount">$0</span>
+            <span class="period">/ month</span>
+          </div>
+          <p class="plan-desc">Perfect for individuals and small side projects getting started.</p>
+          <ul class="feature-list">
+            <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Up to 3 projects</li>
+            <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Basic kanban board</li>
+            <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> 1 team member</li>
+            <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Community support</li>
+          </ul>
+          <button class="cta-btn">Get Started</button>
+        </div>
+
+        <div class="pricing-card pro selected" data-plan="pro" onclick="selectPlan('pro')">
+          <span class="selected-indicator"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6l3 3 5-6"/></svg></span>
+          <span class="plan-badge">Pro</span>
+          <span class="plan-name">Professional</span>
+          <div class="plan-price">
+            <span class="amount">$12</span>
+            <span class="period">/ month</span>
+          </div>
+          <p class="plan-desc">For growing teams that need more power and collaboration tools.</p>
+          <ul class="feature-list">
+            <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Unlimited projects</li>
+            <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Advanced analytics</li>
+            <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Up to 10 team members</li>
+            <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Priority email support</li>
+            <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Custom fields &amp; filters</li>
+          </ul>
+          <button class="cta-btn">Upgrade to Pro</button>
+        </div>
+
+        <div class="pricing-card enterprise" data-plan="enterprise" onclick="selectPlan('enterprise')">
+          <span class="selected-indicator"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6l3 3 5-6"/></svg></span>
+          <span class="plan-badge">Enterprise</span>
+          <span class="plan-name">Enterprise</span>
+          <div class="plan-price">
+            <span class="amount">$49</span>
+            <span class="period">/ month</span>
+          </div>
+          <p class="plan-desc">For large organizations requiring full control, security, and scale.</p>
+          <ul class="feature-list">
+            <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Everything in Pro</li>
+            <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Unlimited team members</li>
+            <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> SSO &amp; SAML</li>
+            <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Audit logs &amp; compliance</li>
+            <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> Dedicated account manager</li>
+            <li><svg class="check" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-7"/></svg> 99.9% SLA guarantee</li>
+          </ul>
+          <button class="cta-btn">Contact Sales</button>
+        </div>
+
       </div>
     </section>
 
@@ -375,6 +511,12 @@
       btn.classList.add("active");
     });
   });
+
+  // ── Pricing Plan Selection ──
+  function selectPlan(plan) {
+    document.querySelectorAll(".pricing-card").forEach(c => c.classList.remove("selected"));
+    document.querySelector(`.pricing-card[data-plan="${plan}"]`).classList.add("selected");
+  }
 
   // ── Init ──
   renderTasks();
